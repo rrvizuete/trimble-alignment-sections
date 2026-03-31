@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import type { WheelEvent } from "react";
 import type { SectionCoordinates } from "../lib/sectionTransform";
 
 type SectionPoint = {
@@ -78,6 +79,15 @@ function buildTicks(min: number, max: number, step: number) {
   return ticks;
 }
 
+function formatTick(value: number, step: number) {
+  if (Math.abs(value) < step / 1000) {
+    return "0";
+  }
+
+  const decimals = Math.max(0, -Math.floor(Math.log10(step)));
+  return value.toFixed(Math.min(6, decimals));
+}
+
 export function SectionView({ stationLabel, centerlineElevation, samplePoint }: Props) {
   const width = 820;
   const height = 360;
@@ -126,53 +136,38 @@ export function SectionView({ stationLabel, centerlineElevation, samplePoint }: 
   const elevationStep = getDecadeStep(bounds.maxElevation - bounds.minElevation);
   const offsetTicks = buildTicks(bounds.minOffset, bounds.maxOffset, offsetStep);
   const elevationTicks = buildTicks(bounds.minElevation, bounds.maxElevation, elevationStep);
+  const pxPerOffsetStep = (width - 2 * padding) * (offsetStep / (bounds.maxOffset - bounds.minOffset || 1));
+  const pxPerElevationStep =
+    (height - 2 * padding) * (elevationStep / (bounds.maxElevation - bounds.minElevation || 1));
+  const offsetLabelEvery = Math.max(1, Math.ceil(56 / pxPerOffsetStep));
+  const elevationLabelEvery = Math.max(1, Math.ceil(28 / pxPerElevationStep));
+
+  const handleWheelZoom = (event: WheelEvent<SVGSVGElement>) => {
+    event.preventDefault();
+
+    const zoomFactor = event.deltaY < 0 ? 1.2 : 1 / 1.2;
+    setZoom((currentZoom) => {
+      const nextZoom = currentZoom * zoomFactor;
+      return Math.min(64, Math.max(0.25, Number(nextZoom.toFixed(4))));
+    });
+  };
 
   return (
     <div style={{ marginTop: 24, padding: 20, background: "#1f2937", borderRadius: 12 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-        <h2 style={{ margin: 0, fontSize: 24, textAlign: "center", color: "#e2e8f0", flex: 1 }}>
-          Section View ({stationLabel})
-        </h2>
-        <div style={{ display: "flex", gap: 6, alignItems: "center", color: "#cbd5e1", fontSize: 12 }}>
-          <span>Zoom</span>
-          <button
-            type="button"
-            onClick={() => setZoom((z) => Math.max(0.25, Number((z / 2).toFixed(2))))}
-            style={{
-              background: "#334155",
-              color: "#f8fafc",
-              border: "1px solid #475569",
-              borderRadius: 4,
-              cursor: "pointer",
-            }}
-          >
-            −
-          </button>
-          <span style={{ minWidth: 40, textAlign: "center" }}>{zoom.toFixed(2)}x</span>
-          <button
-            type="button"
-            onClick={() => setZoom((z) => Math.min(64, Number((z * 2).toFixed(2))))}
-            style={{
-              background: "#334155",
-              color: "#f8fafc",
-              border: "1px solid #475569",
-              borderRadius: 4,
-              cursor: "pointer",
-            }}
-          >
-            +
-          </button>
-        </div>
-      </div>
+      <h2 style={{ margin: 0, marginBottom: 12, fontSize: 24, textAlign: "center", color: "#e2e8f0", flex: 1 }}>
+        Section View ({stationLabel})
+      </h2>
 
       <svg
         width="100%"
         viewBox={`0 0 ${width} ${height}`}
         style={{ background: "#0f172a", borderRadius: 8 }}
+        onWheel={handleWheelZoom}
       >
-        {offsetTicks.map((offset) => {
+        {offsetTicks.map((offset, index) => {
           const x = project(offset, bounds.minElevation, bounds, width, height, padding).x;
           const isCenterline = Math.abs(offset) < 0.001;
+          const showLabel = isCenterline || index % offsetLabelEvery === 0;
           return (
             <g key={`offset-grid-${offset}`}>
               <line
@@ -183,21 +178,27 @@ export function SectionView({ stationLabel, centerlineElevation, samplePoint }: 
                 stroke={isCenterline ? "#334155" : "#1e293b"}
                 strokeWidth={isCenterline ? 1.4 : 1}
               />
-              <text x={x} y={height - padding + 16} textAnchor="middle" fill="#94a3b8" fontSize={11}>
-                {offset.toFixed(0)}
-              </text>
+              {showLabel && (
+                <text x={x} y={height - padding + 16} textAnchor="middle" fill="#94a3b8" fontSize={11}>
+                  {formatTick(offset, offsetStep)}
+                </text>
+              )}
             </g>
           );
         })}
 
-        {elevationTicks.map((elevation) => {
+        {elevationTicks.map((elevation, index) => {
           const y = project(bounds.minOffset, elevation, bounds, width, height, padding).y;
+          const nearClElevation = Math.abs(elevation - clElevation) < elevationStep / 1000;
+          const showLabel = nearClElevation || index % elevationLabelEvery === 0;
           return (
             <g key={`elevation-grid-${elevation}`}>
               <line x1={padding} y1={y} x2={width - padding} y2={y} stroke="#1e293b" strokeWidth={1} />
-              <text x={padding - 8} y={y + 4} textAnchor="end" fill="#94a3b8" fontSize={11}>
-                {elevation.toFixed(2)}
-              </text>
+              {showLabel && (
+                <text x={padding - 8} y={y + 4} textAnchor="end" fill="#94a3b8" fontSize={11}>
+                  {formatTick(elevation, elevationStep)}
+                </text>
+              )}
             </g>
           );
         })}
@@ -247,7 +248,7 @@ export function SectionView({ stationLabel, centerlineElevation, samplePoint }: 
           Left (−) / Right (+) Offset from CL
         </text>
         <text x={padding} y={padding - 10} fill="#94a3b8" fontSize={12}>
-          Grid: Offsets and Elevations
+          Grid: Offsets and Elevations (wheel to zoom)
         </text>
       </svg>
     </div>

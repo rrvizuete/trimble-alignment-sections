@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { parseLandXml } from "./features/xml/landXmlParser";
 import { evaluateAlignment } from "./lib/evaluateAlignment";
 import { formatStation, parseStation } from "./lib/stationFormat";
+import { PlanView } from "./components/PlanView";
 import type { Alignment } from "./types/alignment";
 
 export default function App() {
@@ -138,8 +139,16 @@ export default function App() {
             <p style={styles.textRow}>
               <strong>Tangent Y:</strong> {evaluation.tangent.y.toFixed(6)}
             </p>
+            <p style={styles.textRow}>
+              <strong>Section normal X:</strong> {evaluation.normal.x.toFixed(6)}
+            </p>
+            <p style={styles.textRow}>
+              <strong>Section normal Y:</strong> {evaluation.normal.y.toFixed(6)}
+            </p>
           </div>
         )}
+
+        {selectedAlignment && <PlanView alignment={selectedAlignment} evaluation={evaluation} />}
       </div>
     </div>
   );
@@ -154,7 +163,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontFamily: "Arial, sans-serif",
   },
   card: {
-    maxWidth: "900px",
+    maxWidth: "980px",
     margin: "0 auto",
     background: "#111827",
     borderRadius: "16px",

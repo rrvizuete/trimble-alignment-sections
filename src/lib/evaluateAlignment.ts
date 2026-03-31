@@ -14,21 +14,28 @@ export type AlignmentEvaluation = {
     x: number;
     y: number;
   };
+  normal: {
+    x: number;
+    y: number;
+  };
   segmentType: "line" | "arc";
 };
+
+function normalize(x: number, y: number) {
+  const len = Math.hypot(x, y);
+  return { x: x / len, y: y / len };
+}
 
 function evaluateLine(segment: LineSegment, localDistance: number): AlignmentEvaluation {
   const dx = segment.end.x - segment.start.x;
   const dy = segment.end.y - segment.start.y;
-  const length = Math.hypot(dx, dy);
-
-  const ux = dx / length;
-  const uy = dy / length;
+  const dir = normalize(dx, dy);
 
   return {
-    x: segment.start.x + ux * localDistance,
-    y: segment.start.y + uy * localDistance,
-    tangent: { x: ux, y: uy },
+    x: segment.start.x + dir.x * localDistance,
+    y: segment.start.y + dir.y * localDistance,
+    tangent: { x: dir.x, y: dir.y },
+    normal: { x: -dir.y, y: dir.x },
     segmentType: "line",
   };
 }
@@ -50,18 +57,20 @@ function evaluateArc(segment: ArcSegment, localDistance: number): AlignmentEvalu
 
   const rx = x - segment.center.x;
   const ry = y - segment.center.y;
-  const rLen = Math.hypot(rx, ry);
+  const radial = normalize(rx, ry);
 
-  const ux = rx / rLen;
-  const uy = ry / rLen;
+  const tangent =
+    segment.rotation === "ccw"
+      ? { x: -radial.y, y: radial.x }
+      : { x: radial.y, y: -radial.x };
 
-  const tx = segment.rotation === "ccw" ? -uy : uy;
-  const ty = segment.rotation === "ccw" ? ux : -ux;
+  const tangentNorm = normalize(tangent.x, tangent.y);
 
   return {
     x,
     y,
-    tangent: { x: tx, y: ty },
+    tangent: tangentNorm,
+    normal: { x: -tangentNorm.y, y: tangentNorm.x },
     segmentType: "arc",
   };
 }
@@ -87,19 +96,10 @@ function evaluateVerticalProfile(
 
   const points = profile.points;
 
-  if (points.length === 1) {
-    return points[0].elevation;
-  }
+  if (points.length === 1) return points[0].elevation;
+  if (station <= points[0].station) return points[0].elevation;
+  if (station >= points[points.length - 1].station) return points[points.length - 1].elevation;
 
-  if (station <= points[0].station) {
-    return points[0].elevation;
-  }
-
-  if (station >= points[points.length - 1].station) {
-    return points[points.length - 1].elevation;
-  }
-
-  // 1) First check whether the station is inside a vertical curve.
   for (let i = 1; i < points.length - 1; i++) {
     if (!hasUsableCurve(points, i)) continue;
 
@@ -117,13 +117,10 @@ function evaluateVerticalProfile(
     if (station >= bvcStation && station <= evcStation) {
       const elevBVC = p.elevation - g1 * (L / 2);
       const x = station - bvcStation;
-
-      // Symmetrical parabolic vertical curve
       return elevBVC + g1 * x + ((g2 - g1) / (2 * L)) * x * x;
     }
   }
 
-  // 2) Otherwise evaluate on a tangent section between control points.
   for (let i = 0; i < points.length - 1; i++) {
     const a = points[i];
     const b = points[i + 1];
@@ -132,7 +129,6 @@ function evaluateVerticalProfile(
     let startStation = a.station;
     let startElevation = a.elevation;
 
-    // If point a has a vertical curve, tangent starts at EVC on outgoing grade.
     if (hasUsableCurve(points, i)) {
       const L = a.curveLength;
       startStation = a.station + L / 2;
@@ -141,7 +137,6 @@ function evaluateVerticalProfile(
 
     let endStation = b.station;
 
-    // If point b has a vertical curve, tangent ends at BVC on incoming grade.
     if (hasUsableCurve(points, i + 1)) {
       const L = b.curveLength;
       endStation = b.station - L / 2;
@@ -152,7 +147,6 @@ function evaluateVerticalProfile(
     }
   }
 
-  // 3) Fallback: plain interpolation between the bracketing ordered points.
   for (let i = 0; i < points.length - 1; i++) {
     const a = points[i];
     const b = points[i + 1];

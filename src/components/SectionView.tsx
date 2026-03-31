@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import type { WheelEvent } from "react";
 import type { SectionCoordinates } from "../lib/sectionTransform";
 
@@ -105,25 +105,22 @@ export function SectionView({ stationLabel, centerlineElevation, samplePoint }: 
     });
   }
 
+  const baseBounds = getBounds(points, centerlineElevation);
+  const offsetCenter = 0;
+  const elevationCenter =
+    centerlineElevation ?? (baseBounds.minElevation + baseBounds.maxElevation) / 2;
+  const offsetHalf = (baseBounds.maxOffset - baseBounds.minOffset) / 2 / zoom;
+  const elevationHalf = (baseBounds.maxElevation - baseBounds.minElevation) / 2 / zoom;
+  const bounds = {
+    minOffset: offsetCenter - offsetHalf,
+    maxOffset: offsetCenter + offsetHalf,
+    minElevation: elevationCenter - elevationHalf,
+    maxElevation: elevationCenter + elevationHalf,
+  };
+
   if (points.length === 0 && centerlineElevation === undefined) {
     return null;
   }
-
-  const baseBounds = getBounds(points, centerlineElevation);
-  const bounds = useMemo(() => {
-    const offsetCenter = 0;
-    const elevationCenter =
-      centerlineElevation ?? (baseBounds.minElevation + baseBounds.maxElevation) / 2;
-    const offsetHalf = (baseBounds.maxOffset - baseBounds.minOffset) / 2 / zoom;
-    const elevationHalf = (baseBounds.maxElevation - baseBounds.minElevation) / 2 / zoom;
-
-    return {
-      minOffset: offsetCenter - offsetHalf,
-      maxOffset: offsetCenter + offsetHalf,
-      minElevation: elevationCenter - elevationHalf,
-      maxElevation: elevationCenter + elevationHalf,
-    };
-  }, [baseBounds, centerlineElevation, zoom]);
 
   const clBottom = project(0, bounds.minElevation, bounds, width, height, padding);
   const clTop = project(0, bounds.maxElevation, bounds, width, height, padding);

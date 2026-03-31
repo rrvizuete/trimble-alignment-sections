@@ -1,3 +1,4 @@
+import { useMemo, useState } from "react";
 import type { SectionCoordinates } from "../lib/sectionTransform";
 
 type SectionPoint = {
@@ -56,17 +57,39 @@ function project(
   };
 }
 
+function getDecadeStep(range: number, targetLines = 8) {
+  const rawStep = range / targetLines;
+  if (!Number.isFinite(rawStep) || rawStep <= 0) {
+    return 1;
+  }
+
+  return 10 ** Math.floor(Math.log10(rawStep));
+}
+
+function buildTicks(min: number, max: number, step: number) {
+  const ticks: number[] = [];
+  const epsilon = step / 1000;
+  const start = Math.ceil((min - epsilon) / step) * step;
+
+  for (let value = start; value <= max + epsilon; value += step) {
+    ticks.push(Number(value.toFixed(6)));
+  }
+
+  return ticks;
+}
+
 export function SectionView({ stationLabel, centerlineElevation, samplePoint }: Props) {
   const width = 820;
   const height = 360;
   const padding = 44;
+  const [zoom, setZoom] = useState(1);
 
   const points: SectionPoint[] = [];
 
   if (samplePoint) {
     points.push({
       label: "Sample point",
-      color: "#ef4444",
+      color: "#22d3ee",
       offset: samplePoint.offset,
       elevation: samplePoint.elevation,
     });
@@ -76,7 +99,21 @@ export function SectionView({ stationLabel, centerlineElevation, samplePoint }: 
     return null;
   }
 
-  const bounds = getBounds(points, centerlineElevation);
+  const baseBounds = getBounds(points, centerlineElevation);
+  const bounds = useMemo(() => {
+    const offsetCenter = 0;
+    const elevationCenter =
+      centerlineElevation ?? (baseBounds.minElevation + baseBounds.maxElevation) / 2;
+    const offsetHalf = (baseBounds.maxOffset - baseBounds.minOffset) / 2 / zoom;
+    const elevationHalf = (baseBounds.maxElevation - baseBounds.minElevation) / 2 / zoom;
+
+    return {
+      minOffset: offsetCenter - offsetHalf,
+      maxOffset: offsetCenter + offsetHalf,
+      minElevation: elevationCenter - elevationHalf,
+      maxElevation: elevationCenter + elevationHalf,
+    };
+  }, [baseBounds, centerlineElevation, zoom]);
 
   const clBottom = project(0, bounds.minElevation, bounds, width, height, padding);
   const clTop = project(0, bounds.maxElevation, bounds, width, height, padding);
@@ -85,28 +122,48 @@ export function SectionView({ stationLabel, centerlineElevation, samplePoint }: 
     (bounds.minElevation + bounds.maxElevation) / 2;
   const clPoint = project(0, clElevation, bounds, width, height, padding);
 
-  const offsetStep = Math.max(5, Math.round((bounds.maxOffset - bounds.minOffset) / 8 / 5) * 5);
-  const elevationStep = Math.max(0.5, Number(((bounds.maxElevation - bounds.minElevation) / 8).toFixed(1)));
-
-  const offsetTicks: number[] = [];
-  for (let offset = bounds.minOffset; offset <= bounds.maxOffset + 0.001; offset += offsetStep) {
-    offsetTicks.push(Number(offset.toFixed(3)));
-  }
-
-  const elevationTicks: number[] = [];
-  for (
-    let elevation = bounds.minElevation;
-    elevation <= bounds.maxElevation + 0.001;
-    elevation += elevationStep
-  ) {
-    elevationTicks.push(Number(elevation.toFixed(3)));
-  }
+  const offsetStep = getDecadeStep(bounds.maxOffset - bounds.minOffset);
+  const elevationStep = getDecadeStep(bounds.maxElevation - bounds.minElevation);
+  const offsetTicks = buildTicks(bounds.minOffset, bounds.maxOffset, offsetStep);
+  const elevationTicks = buildTicks(bounds.minElevation, bounds.maxElevation, elevationStep);
 
   return (
     <div style={{ marginTop: 24, padding: 20, background: "#1f2937", borderRadius: 12 }}>
-      <h2 style={{ marginTop: 0, marginBottom: 12, fontSize: 24, textAlign: "center" }}>
-        Section View ({stationLabel})
-      </h2>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+        <h2 style={{ margin: 0, fontSize: 24, textAlign: "center", color: "#e2e8f0", flex: 1 }}>
+          Section View ({stationLabel})
+        </h2>
+        <div style={{ display: "flex", gap: 6, alignItems: "center", color: "#cbd5e1", fontSize: 12 }}>
+          <span>Zoom</span>
+          <button
+            type="button"
+            onClick={() => setZoom((z) => Math.max(0.25, Number((z / 2).toFixed(2))))}
+            style={{
+              background: "#334155",
+              color: "#f8fafc",
+              border: "1px solid #475569",
+              borderRadius: 4,
+              cursor: "pointer",
+            }}
+          >
+            −
+          </button>
+          <span style={{ minWidth: 40, textAlign: "center" }}>{zoom.toFixed(2)}x</span>
+          <button
+            type="button"
+            onClick={() => setZoom((z) => Math.min(64, Number((z * 2).toFixed(2))))}
+            style={{
+              background: "#334155",
+              color: "#f8fafc",
+              border: "1px solid #475569",
+              borderRadius: 4,
+              cursor: "pointer",
+            }}
+          >
+            +
+          </button>
+        </div>
+      </div>
 
       <svg
         width="100%"
@@ -190,7 +247,7 @@ export function SectionView({ stationLabel, centerlineElevation, samplePoint }: 
           Left (−) / Right (+) Offset from CL
         </text>
         <text x={padding} y={padding - 10} fill="#94a3b8" fontSize={12}>
-          Grid: Offsets (m) and Elevations (m)
+          Grid: Offsets and Elevations
         </text>
       </svg>
     </div>

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { parseLandXml } from "./features/xml/landXmlParser";
 import { evaluateAlignment } from "./lib/evaluateAlignment";
 import { formatStation, parseStation } from "./lib/stationFormat";
+import { worldToSectionCoordinates } from "./lib/sectionTransform";
 import { PlanView } from "./components/PlanView";
 import type { Alignment } from "./types/alignment";
 
@@ -9,6 +10,10 @@ export default function App() {
   const [alignments, setAlignments] = useState<Alignment[]>([]);
   const [selectedName, setSelectedName] = useState<string>("");
   const [stationText, setStationText] = useState<string>("");
+
+  const [testPointX, setTestPointX] = useState<string>("");
+  const [testPointY, setTestPointY] = useState<string>("");
+  const [testPointZ, setTestPointZ] = useState<string>("");
 
   useEffect(() => {
     fetch("/sample-data/3485-ALG-XX-RWY-DES-AFC.xml")
@@ -38,9 +43,24 @@ export default function App() {
   );
 
   useEffect(() => {
-    if (selectedAlignment) {
-      setStationText(formatStation(selectedAlignment.staStart));
+    if (!selectedAlignment) return;
+
+    setStationText(formatStation(selectedAlignment.staStart));
+
+    const firstSegment = selectedAlignment.segments[0];
+    if (!firstSegment) return;
+
+    if (firstSegment.type === "line") {
+      setTestPointX(firstSegment.start.x.toFixed(3));
+      setTestPointY(firstSegment.start.y.toFixed(3));
+    } else {
+      setTestPointX(firstSegment.start.x.toFixed(3));
+      setTestPointY(firstSegment.start.y.toFixed(3));
     }
+
+    setTestPointZ(
+      selectedAlignment.profile?.points?.[0]?.elevation?.toFixed(3) ?? "0.000"
+    );
   }, [selectedAlignment]);
 
   const evaluation = useMemo(() => {
@@ -55,6 +75,20 @@ export default function App() {
       return null;
     }
   }, [selectedAlignment, stationText]);
+
+  const sectionCoords = useMemo(() => {
+    if (!evaluation) return null;
+
+    const x = Number(testPointX);
+    const y = Number(testPointY);
+    const z = Number(testPointZ);
+
+    if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) {
+      return null;
+    }
+
+    return worldToSectionCoordinates(evaluation, { x, y, z });
+  }, [evaluation, testPointX, testPointY, testPointZ]);
 
   return (
     <div style={styles.page}>
@@ -116,7 +150,7 @@ export default function App() {
 
         {evaluation && (
           <div style={styles.panel}>
-            <h2 style={styles.panelTitle}>Evaluation</h2>
+            <h2 style={styles.panelTitle}>Station Evaluation</h2>
             <p style={styles.textRow}>
               <strong>Station:</strong> {stationText}
             </p>
@@ -149,6 +183,65 @@ export default function App() {
         )}
 
         {selectedAlignment && <PlanView alignment={selectedAlignment} evaluation={evaluation} />}
+
+        <div style={styles.panel}>
+          <h2 style={styles.panelTitle}>Test World Point → Section Coordinates</h2>
+
+          <div style={styles.testPointGrid}>
+            <div>
+              <label htmlFor="test-point-x" style={styles.smallLabel}>
+                Point X
+              </label>
+              <input
+                id="test-point-x"
+                type="text"
+                value={testPointX}
+                onChange={(e) => setTestPointX(e.target.value)}
+                style={styles.smallInput}
+              />
+            </div>
+
+            <div>
+              <label htmlFor="test-point-y" style={styles.smallLabel}>
+                Point Y
+              </label>
+              <input
+                id="test-point-y"
+                type="text"
+                value={testPointY}
+                onChange={(e) => setTestPointY(e.target.value)}
+                style={styles.smallInput}
+              />
+            </div>
+
+            <div>
+              <label htmlFor="test-point-z" style={styles.smallLabel}>
+                Point Z
+              </label>
+              <input
+                id="test-point-z"
+                type="text"
+                value={testPointZ}
+                onChange={(e) => setTestPointZ(e.target.value)}
+                style={styles.smallInput}
+              />
+            </div>
+          </div>
+
+          {sectionCoords && (
+            <div style={{ marginTop: 18 }}>
+              <p style={styles.textRow}>
+                <strong>Offset from CL:</strong> {sectionCoords.offset.toFixed(3)}
+              </p>
+              <p style={styles.textRow}>
+                <strong>Elevation:</strong> {sectionCoords.elevation.toFixed(3)}
+              </p>
+              <p style={styles.textRow}>
+                <strong>Along-tangent distance:</strong> {sectionCoords.along.toFixed(3)}
+              </p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -226,5 +319,27 @@ const styles: Record<string, React.CSSProperties> = {
   textRow: {
     margin: "8px 0",
     fontSize: "18px",
+  },
+  testPointGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+    gap: "14px",
+    marginTop: "8px",
+  },
+  smallLabel: {
+    display: "block",
+    marginBottom: "6px",
+    fontSize: "16px",
+    color: "#cbd5e1",
+  },
+  smallInput: {
+    width: "100%",
+    padding: "10px 12px",
+    fontSize: "16px",
+    borderRadius: "8px",
+    border: "1px solid #475569",
+    background: "#0f172a",
+    color: "#e5e7eb",
+    boxSizing: "border-box",
   },
 };

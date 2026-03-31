@@ -104,12 +104,21 @@ export default function App() {
             <p style={styles.textRow}>
               <strong>Segments:</strong> {selectedAlignment.segments.length}
             </p>
+            <p style={styles.textRow}>
+              <strong>Profile:</strong>{" "}
+              {selectedAlignment.profile
+                ? `${selectedAlignment.profile.name} (${selectedAlignment.profile.points.length} control points)`
+                : "No profile found"}
+            </p>
           </div>
         )}
 
         {evaluation && (
           <div style={styles.panel}>
             <h2 style={styles.panelTitle}>Evaluation</h2>
+            <p style={styles.textRow}>
+              <strong>Station:</strong> {stationText}
+            </p>
             <p style={styles.textRow}>
               <strong>Segment type:</strong> {evaluation.segmentType}
             </p>
@@ -118,6 +127,10 @@ export default function App() {
             </p>
             <p style={styles.textRow}>
               <strong>Y:</strong> {evaluation.y.toFixed(3)}
+            </p>
+            <p style={styles.textRow}>
+              <strong>Z:</strong>{" "}
+              {evaluation.z !== undefined ? evaluation.z.toFixed(3) : "N/A"}
             </p>
             <p style={styles.textRow}>
               <strong>Tangent X:</strong> {evaluation.tangent.x.toFixed(6)}

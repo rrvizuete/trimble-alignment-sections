@@ -1,12 +1,17 @@
-import type { Alignment, Point, Segment } from "../../types/alignment";
+import type {
+  Alignment,
+  Point,
+  Segment,
+  VerticalControlPoint,
+  VerticalProfile,
+} from "../../types/alignment";
 
 function parsePoint(text: string): Point {
   const [first, second] = text.trim().split(/\s+/);
 
-  // LandXML point order in your file matches:
-  // first  = Y (Northing)
-  // second = X (Easting)
-  // Civil 3D is showing X/Y in the opposite order from how we were reading it.
+  // Your LandXML point order behaves as:
+  // first  = Northing (Y)
+  // second = Easting  (X)
   return {
     x: Number(second),
     y: Number(first),
@@ -62,6 +67,72 @@ function parseSegmentsInOrder(coordGeomEl: Element | null): Segment[] {
   return segments;
 }
 
+function parseProfile(alignmentEl: Element): VerticalProfile | undefined {
+  const profileEl = Array.from(alignmentEl.children).find(
+    (el) => el.localName === "Profile"
+  );
+  if (!profileEl) return undefined;
+
+  const profAlignEl = Array.from(profileEl.children).find(
+    (el) => el.localName === "ProfAlign"
+  );
+  if (!profAlignEl) return undefined;
+
+  const name = profAlignEl.getAttribute("name") ?? "PGL";
+
+  const points: VerticalControlPoint[] = [];
+
+  for (const child of Array.from(profAlignEl.children)) {
+    const tag = child.localName;
+
+    if (tag === "PVI") {
+      const text = child.textContent?.trim() ?? "";
+      const [stationText, elevationText] = text.split(/\s+/);
+
+      const station = Number(stationText);
+      const elevation = Number(elevationText);
+
+      if (Number.isFinite(station) && Number.isFinite(elevation)) {
+        points.push({
+          station,
+          elevation,
+          curveLength: 0,
+          source: "PVI",
+        });
+      }
+    }
+
+    if (tag === "ParaCurve") {
+      const text = child.textContent?.trim() ?? "";
+      const [stationText, elevationText] = text.split(/\s+/);
+
+      const station = Number(stationText);
+      const elevation = Number(elevationText);
+      const curveLength = Number(child.getAttribute("length") ?? "0");
+
+      if (
+        Number.isFinite(station) &&
+        Number.isFinite(elevation) &&
+        Number.isFinite(curveLength)
+      ) {
+        points.push({
+          station,
+          elevation,
+          curveLength,
+          source: "ParaCurve",
+        });
+      }
+    }
+  }
+
+  if (points.length === 0) return undefined;
+
+  return {
+    name,
+    points,
+  };
+}
+
 export function parseLandXml(xmlText: string): Alignment[] {
   const xml = new DOMParser().parseFromString(xmlText, "application/xml");
 
@@ -77,12 +148,14 @@ export function parseLandXml(xmlText: string): Alignment[] {
     const staStart = Number(alignmentEl.getAttribute("staStart") ?? "0");
 
     const coordGeomEl =
-      Array.from(alignmentEl.children).find((el) => el.localName === "CoordGeom") ?? null;
+      Array.from(alignmentEl.children).find((el) => el.localName === "CoordGeom") ??
+      null;
 
     return {
       name,
       staStart,
       segments: parseSegmentsInOrder(coordGeomEl),
+      profile: parseProfile(alignmentEl),
     };
   });
 }

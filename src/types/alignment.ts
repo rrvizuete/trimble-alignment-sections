@@ -22,8 +22,21 @@ export type ArcSegment = {
 
 export type Segment = LineSegment | ArcSegment;
 
+export type VerticalControlPoint = {
+  station: number;
+  elevation: number;
+  curveLength: number;
+  source: "PVI" | "ParaCurve";
+};
+
+export type VerticalProfile = {
+  name: string;
+  points: VerticalControlPoint[];
+};
+
 export type Alignment = {
   name: string;
   staStart: number;
   segments: Segment[];
+  profile?: VerticalProfile;
 };

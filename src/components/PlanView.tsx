@@ -142,7 +142,7 @@ export function PlanView({ alignment, evaluation }: Props) {
 
   return (
     <div style={{ marginTop: 24, padding: 20, background: "#1f2937", borderRadius: 12 }}>
-      <h2 style={{ marginTop: 0, marginBottom: 12, fontSize: 24, textAlign: "center" }}>
+      <h2 style={{ marginTop: 0, marginBottom: 12, fontSize: 24, textAlign: "center", color: "#e2e8f0" }}>
         Plan View
       </h2>
 

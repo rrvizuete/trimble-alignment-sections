@@ -321,6 +321,7 @@ const styles: Record<string, React.CSSProperties> = {
     marginTop: 0,
     marginBottom: "12px",
     fontSize: "24px",
+    color: "#e2e8f0",
   },
   textRow: {
     margin: "8px 0",

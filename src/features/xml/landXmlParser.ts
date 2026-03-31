@@ -1,11 +1,21 @@
 import type { Alignment, Point, Segment } from "../../types/alignment";
 
 function parsePoint(text: string): Point {
-  const [x, y] = text.trim().split(/\s+/);
+  const [first, second] = text.trim().split(/\s+/);
+
+  // LandXML point order in your file matches:
+  // first  = Y (Northing)
+  // second = X (Easting)
+  // Civil 3D is showing X/Y in the opposite order from how we were reading it.
   return {
-    x: Number(x),
-    y: Number(y),
+    x: Number(second),
+    y: Number(first),
   };
+}
+
+function getDirectChildText(parent: Element, tagName: string): string {
+  const child = Array.from(parent.children).find((el) => el.localName === tagName);
+  return child?.textContent?.trim() ?? "";
 }
 
 function parseSegmentsInOrder(coordGeomEl: Element | null): Segment[] {
@@ -17,8 +27,8 @@ function parseSegmentsInOrder(coordGeomEl: Element | null): Segment[] {
     const tag = child.localName;
 
     if (tag === "Line") {
-      const startText = child.querySelector(":scope > Start")?.textContent ?? "";
-      const endText = child.querySelector(":scope > End")?.textContent ?? "";
+      const startText = getDirectChildText(child, "Start");
+      const endText = getDirectChildText(child, "End");
       const lengthText = child.getAttribute("length") ?? "0";
 
       segments.push({
@@ -30,9 +40,9 @@ function parseSegmentsInOrder(coordGeomEl: Element | null): Segment[] {
     }
 
     if (tag === "Curve") {
-      const startText = child.querySelector(":scope > Start")?.textContent ?? "";
-      const centerText = child.querySelector(":scope > Center")?.textContent ?? "";
-      const endText = child.querySelector(":scope > End")?.textContent ?? "";
+      const startText = getDirectChildText(child, "Start");
+      const centerText = getDirectChildText(child, "Center");
+      const endText = getDirectChildText(child, "End");
       const radiusText = child.getAttribute("radius") ?? "0";
       const lengthText = child.getAttribute("length") ?? "0";
       const rotation = (child.getAttribute("rot") ?? "cw") as "cw" | "ccw";
@@ -66,9 +76,8 @@ export function parseLandXml(xmlText: string): Alignment[] {
     const name = alignmentEl.getAttribute("name") ?? "Unnamed";
     const staStart = Number(alignmentEl.getAttribute("staStart") ?? "0");
 
-    const coordGeomEl = Array.from(alignmentEl.children).find(
-      (el) => el.localName === "CoordGeom"
-    ) ?? null;
+    const coordGeomEl =
+      Array.from(alignmentEl.children).find((el) => el.localName === "CoordGeom") ?? null;
 
     return {
       name,

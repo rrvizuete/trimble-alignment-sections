@@ -4,6 +4,7 @@ import { evaluateAlignment } from "./lib/evaluateAlignment";
 import { formatStation, parseStation } from "./lib/stationFormat";
 import { worldToSectionCoordinates } from "./lib/sectionTransform";
 import { PlanView } from "./components/PlanView";
+import { SectionView } from "./components/SectionView";
 import type { Alignment } from "./types/alignment";
 
 export default function App() {
@@ -14,6 +15,16 @@ export default function App() {
   const [testPointX, setTestPointX] = useState<string>("");
   const [testPointY, setTestPointY] = useState<string>("");
   const [testPointZ, setTestPointZ] = useState<string>("");
+
+  const applyAlignmentDefaults = (alignment: Alignment) => {
+    const firstSegment = alignment.segments[0];
+    if (firstSegment) {
+      setTestPointX(firstSegment.start.x.toFixed(3));
+      setTestPointY(firstSegment.start.y.toFixed(3));
+    }
+
+    setTestPointZ(alignment.profile?.points?.[0]?.elevation?.toFixed(3) ?? "0.000");
+  };
 
   useEffect(() => {
     fetch("/sample-data/3485-ALG-XX-RWY-DES-AFC.xml")
@@ -30,6 +41,7 @@ export default function App() {
         if (parsed.length > 0) {
           setSelectedName(parsed[0].name);
           setStationText(formatStation(parsed[0].staStart));
+          applyAlignmentDefaults(parsed[0]);
         }
       })
       .catch((err) => {
@@ -42,26 +54,6 @@ export default function App() {
     [alignments, selectedName]
   );
 
-  useEffect(() => {
-    if (!selectedAlignment) return;
-
-    setStationText(formatStation(selectedAlignment.staStart));
-
-    const firstSegment = selectedAlignment.segments[0];
-    if (!firstSegment) return;
-
-    if (firstSegment.type === "line") {
-      setTestPointX(firstSegment.start.x.toFixed(3));
-      setTestPointY(firstSegment.start.y.toFixed(3));
-    } else {
-      setTestPointX(firstSegment.start.x.toFixed(3));
-      setTestPointY(firstSegment.start.y.toFixed(3));
-    }
-
-    setTestPointZ(
-      selectedAlignment.profile?.points?.[0]?.elevation?.toFixed(3) ?? "0.000"
-    );
-  }, [selectedAlignment]);
 
   const evaluation = useMemo(() => {
     if (!selectedAlignment || !stationText.trim()) return null;
@@ -102,7 +94,15 @@ export default function App() {
           <select
             id="alignment-select"
             value={selectedName}
-            onChange={(e) => setSelectedName(e.target.value)}
+            onChange={(e) => {
+              const nextName = e.target.value;
+              setSelectedName(nextName);
+              const nextAlignment = alignments.find((a) => a.name === nextName);
+              if (nextAlignment) {
+                setStationText(formatStation(nextAlignment.staStart));
+                applyAlignmentDefaults(nextAlignment);
+              }
+            }}
             style={styles.select}
           >
             {alignments.map((a) => (
@@ -182,7 +182,13 @@ export default function App() {
           </div>
         )}
 
-        {selectedAlignment && <PlanView alignment={selectedAlignment} evaluation={evaluation} />}
+                {selectedAlignment && <PlanView alignment={selectedAlignment} evaluation={evaluation} />}
+
+        <SectionView
+          stationLabel={stationText || "N/A"}
+          centerlineElevation={evaluation?.z}
+          samplePoint={sectionCoords}
+        />
 
         <div style={styles.panel}>
           <h2 style={styles.panelTitle}>Test World Point → Section Coordinates</h2>

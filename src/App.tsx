@@ -86,173 +86,150 @@ export default function App() {
     <div style={styles.page}>
       <div style={styles.card}>
         <h1 style={styles.title}>Alignment Explorer</h1>
-
-        <div style={styles.field}>
-          <label htmlFor="alignment-select" style={styles.label}>
-            Select Alignment
-          </label>
-          <select
-            id="alignment-select"
-            value={selectedName}
-            onChange={(e) => {
-              const nextName = e.target.value;
-              setSelectedName(nextName);
-              const nextAlignment = alignments.find((a) => a.name === nextName);
-              if (nextAlignment) {
-                setStationText(formatStation(nextAlignment.staStart));
-                applyAlignmentDefaults(nextAlignment);
-              }
-            }}
-            style={styles.select}
-          >
-            {alignments.map((a) => (
-              <option key={a.name} value={a.name}>
-                {a.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div style={styles.field}>
-          <label htmlFor="station-input" style={styles.label}>
-            Station
-          </label>
-          <input
-            id="station-input"
-            type="text"
-            value={stationText}
-            onChange={(e) => setStationText(e.target.value)}
-            placeholder="355+00"
-            style={styles.input}
-          />
-        </div>
-
-        <div style={styles.quadrantGrid}>
-          {selectedAlignment && (
+        <div style={styles.workspace}>
+          <div style={styles.sidebar}>
             <div style={styles.panel}>
-              <h2 style={styles.panelTitle}>Alignment Info</h2>
-              <p style={styles.textRow}>
-                <strong>Name:</strong> {selectedAlignment.name}
-              </p>
-              <p style={styles.textRow}>
-                <strong>Start station:</strong> {formatStation(selectedAlignment.staStart)}
-              </p>
-              <p style={styles.textRow}>
-                <strong>Segments:</strong> {selectedAlignment.segments.length}
-              </p>
-              <p style={styles.textRow}>
-                <strong>Profile:</strong>{" "}
-                {selectedAlignment.profile
-                  ? `${selectedAlignment.profile.name} (${selectedAlignment.profile.points.length} control points)`
-                  : "No profile found"}
-              </p>
-            </div>
-          )}
-
-          <div style={styles.panel}>
-            <h2 style={styles.panelTitle}>Station Evaluation</h2>
-            {evaluation ? (
-              <>
-                <p style={styles.textRow}>
-                  <strong>Station:</strong> {stationText}
-                </p>
-                <p style={styles.textRow}>
-                  <strong>Segment type:</strong> {evaluation.segmentType}
-                </p>
-                <p style={styles.textRow}>
-                  <strong>X:</strong> {evaluation.x.toFixed(3)}
-                </p>
-                <p style={styles.textRow}>
-                  <strong>Y:</strong> {evaluation.y.toFixed(3)}
-                </p>
-                <p style={styles.textRow}>
-                  <strong>Z:</strong>{" "}
-                  {evaluation.z !== undefined ? evaluation.z.toFixed(3) : "N/A"}
-                </p>
-                <p style={styles.textRow}>
-                  <strong>Tangent X:</strong> {evaluation.tangent.x.toFixed(6)}
-                </p>
-                <p style={styles.textRow}>
-                  <strong>Tangent Y:</strong> {evaluation.tangent.y.toFixed(6)}
-                </p>
-                <p style={styles.textRow}>
-                  <strong>Section normal X:</strong> {evaluation.normal.x.toFixed(6)}
-                </p>
-                <p style={styles.textRow}>
-                  <strong>Section normal Y:</strong> {evaluation.normal.y.toFixed(6)}
-                </p>
-              </>
-            ) : (
-              <p style={styles.textRow}>Enter a valid station to evaluate the alignment.</p>
-            )}
-
-            <h3 style={styles.subPanelTitle}>Test World Point → Section Coordinates</h3>
-            <div style={styles.testPointGrid}>
-              <div>
-                <label htmlFor="test-point-x" style={styles.smallLabel}>
-                  Point X
+              <div style={styles.field}>
+                <label htmlFor="alignment-select" style={styles.label}>
+                  Select Alignment
                 </label>
-                <input
-                  id="test-point-x"
-                  type="text"
-                  value={testPointX}
-                  onChange={(e) => setTestPointX(e.target.value)}
-                  style={styles.smallInput}
-                />
+                <select
+                  id="alignment-select"
+                  value={selectedName}
+                  onChange={(e) => {
+                    const nextName = e.target.value;
+                    setSelectedName(nextName);
+                    const nextAlignment = alignments.find((a) => a.name === nextName);
+                    if (nextAlignment) {
+                      setStationText(formatStation(nextAlignment.staStart));
+                      applyAlignmentDefaults(nextAlignment);
+                    }
+                  }}
+                  style={styles.select}
+                >
+                  {alignments.map((a) => (
+                    <option key={a.name} value={a.name}>
+                      {a.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
-              <div>
-                <label htmlFor="test-point-y" style={styles.smallLabel}>
-                  Point Y
+              <div style={styles.field}>
+                <label htmlFor="station-input" style={styles.label}>
+                  Station
                 </label>
                 <input
-                  id="test-point-y"
+                  id="station-input"
                   type="text"
-                  value={testPointY}
-                  onChange={(e) => setTestPointY(e.target.value)}
-                  style={styles.smallInput}
-                />
-              </div>
-
-              <div>
-                <label htmlFor="test-point-z" style={styles.smallLabel}>
-                  Point Z
-                </label>
-                <input
-                  id="test-point-z"
-                  type="text"
-                  value={testPointZ}
-                  onChange={(e) => setTestPointZ(e.target.value)}
-                  style={styles.smallInput}
+                  value={stationText}
+                  onChange={(e) => setStationText(e.target.value)}
+                  placeholder="355+00"
+                  style={styles.input}
                 />
               </div>
             </div>
 
-            {sectionCoords && (
-              <div style={{ marginTop: 14 }}>
-                <p style={styles.textRow}>
-                  <strong>Offset from CL:</strong> {sectionCoords.offset.toFixed(3)}
+            {selectedAlignment && (
+              <div style={styles.panel}>
+                <h2 style={styles.panelTitle}>Alignment Info</h2>
+                <p style={styles.smallTextRow}>
+                  <strong>Name:</strong> {selectedAlignment.name}
                 </p>
-                <p style={styles.textRow}>
-                  <strong>Elevation:</strong> {sectionCoords.elevation.toFixed(3)}
+                <p style={styles.smallTextRow}>
+                  <strong>Start station:</strong> {formatStation(selectedAlignment.staStart)}
                 </p>
-                <p style={styles.textRow}>
-                  <strong>Along-tangent distance:</strong> {sectionCoords.along.toFixed(3)}
+                <p style={styles.smallTextRow}>
+                  <strong>Segments:</strong> {selectedAlignment.segments.length}
+                </p>
+                <p style={styles.smallTextRow}>
+                  <strong>Profile:</strong>{" "}
+                  {selectedAlignment.profile
+                    ? `${selectedAlignment.profile.name} (${selectedAlignment.profile.points.length} control points)`
+                    : "No profile found"}
                 </p>
               </div>
             )}
+
+            <div style={styles.panel}>
+              <h2 style={styles.panelTitle}>Station / Coordinates</h2>
+              {evaluation ? (
+                <>
+                  <p style={styles.smallTextRow}>
+                    <strong>Type:</strong> {evaluation.segmentType}
+                  </p>
+                  <p style={styles.smallTextRow}>
+                    <strong>X/Y/Z:</strong> {evaluation.x.toFixed(3)} / {evaluation.y.toFixed(3)} /{" "}
+                    {evaluation.z !== undefined ? evaluation.z.toFixed(3) : "N/A"}
+                  </p>
+                  <p style={styles.smallTextRow}>
+                    <strong>Tangent:</strong> {evaluation.tangent.x.toFixed(4)}, {evaluation.tangent.y.toFixed(4)}
+                  </p>
+                </>
+              ) : (
+                <p style={styles.smallTextRow}>Enter a valid station to evaluate alignment.</p>
+              )}
+
+              <h3 style={styles.subPanelTitle}>Test Point</h3>
+              <div style={styles.testPointGrid}>
+                <div>
+                  <label htmlFor="test-point-x" style={styles.smallLabel}>
+                    X
+                  </label>
+                  <input
+                    id="test-point-x"
+                    type="text"
+                    value={testPointX}
+                    onChange={(e) => setTestPointX(e.target.value)}
+                    style={styles.smallInput}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="test-point-y" style={styles.smallLabel}>
+                    Y
+                  </label>
+                  <input
+                    id="test-point-y"
+                    type="text"
+                    value={testPointY}
+                    onChange={(e) => setTestPointY(e.target.value)}
+                    style={styles.smallInput}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="test-point-z" style={styles.smallLabel}>
+                    Z
+                  </label>
+                  <input
+                    id="test-point-z"
+                    type="text"
+                    value={testPointZ}
+                    onChange={(e) => setTestPointZ(e.target.value)}
+                    style={styles.smallInput}
+                  />
+                </div>
+              </div>
+
+              {sectionCoords && (
+                <p style={{ ...styles.smallTextRow, marginTop: 10 }}>
+                  <strong>Off/Elev/Along:</strong> {sectionCoords.offset.toFixed(3)} /{" "}
+                  {sectionCoords.elevation.toFixed(3)} / {sectionCoords.along.toFixed(3)}
+                </p>
+              )}
+            </div>
           </div>
 
-          <div style={styles.panel}>
-            {selectedAlignment && <PlanView alignment={selectedAlignment} evaluation={evaluation} />}
-          </div>
-
-          <div style={styles.panel}>
-            <SectionView
-              stationLabel={stationText || "N/A"}
-              centerlineElevation={evaluation?.z}
-              samplePoint={sectionCoords}
-            />
+          <div style={styles.visualStack}>
+            <div style={styles.visualPanel}>
+              {selectedAlignment && <PlanView alignment={selectedAlignment} evaluation={evaluation} />}
+            </div>
+            <div style={styles.visualPanel}>
+              <SectionView
+                stationLabel={stationText || "N/A"}
+                centerlineElevation={evaluation?.z}
+                samplePoint={sectionCoords}
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -262,44 +239,72 @@ export default function App() {
 
 const styles: Record<string, React.CSSProperties> = {
   page: {
-    minHeight: "100vh",
+    height: "100vh",
     background: "#0f172a",
     color: "#e5e7eb",
-    padding: "20px",
+    padding: "8px",
     fontFamily: "Arial, sans-serif",
   },
   card: {
-    maxWidth: "1400px",
-    margin: "0 auto",
+    width: "100%",
+    height: "100%",
     background: "#111827",
-    borderRadius: "16px",
-    padding: "24px",
+    borderRadius: "14px",
+    padding: "12px",
     boxShadow: "0 10px 30px rgba(0,0,0,0.3)",
+    boxSizing: "border-box",
+    display: "flex",
+    flexDirection: "column",
+    overflow: "hidden",
   },
   title: {
     marginTop: 0,
-    marginBottom: "16px",
-    fontSize: "36px",
+    marginBottom: "10px",
+    fontSize: "30px",
     lineHeight: 1.1,
     textAlign: "center",
   },
+  workspace: {
+    display: "grid",
+    gridTemplateColumns: "320px minmax(0, 1fr)",
+    gap: "12px",
+    minHeight: 0,
+    flex: 1,
+  },
+  sidebar: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "10px",
+    minHeight: 0,
+    overflowY: "auto",
+  },
+  visualStack: {
+    display: "grid",
+    gridTemplateRows: "1fr 1fr",
+    gap: "12px",
+    minHeight: 0,
+  },
+  visualPanel: {
+    padding: "12px",
+    background: "#1f2937",
+    borderRadius: "12px",
+    overflow: "hidden",
+    minHeight: 0,
+  },
   field: {
-    marginBottom: "14px",
+    marginBottom: "8px",
   },
   label: {
     display: "block",
-    marginBottom: "8px",
-    fontSize: "18px",
+    marginBottom: "4px",
+    fontSize: "14px",
     color: "#cbd5e1",
-    textAlign: "center",
+    textAlign: "left",
   },
   select: {
     width: "100%",
-    maxWidth: "620px",
-    display: "block",
-    margin: "0 auto",
-    padding: "10px 12px",
-    fontSize: "18px",
+    padding: "8px 10px",
+    fontSize: "15px",
     borderRadius: "8px",
     border: "1px solid #475569",
     background: "#0f172a",
@@ -307,11 +312,8 @@ const styles: Record<string, React.CSSProperties> = {
   },
   input: {
     width: "100%",
-    maxWidth: "620px",
-    display: "block",
-    margin: "0 auto",
-    padding: "10px 12px",
-    fontSize: "18px",
+    padding: "8px 10px",
+    fontSize: "15px",
     borderRadius: "8px",
     border: "1px solid #475569",
     background: "#0f172a",
@@ -324,23 +326,22 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: "12px",
     textAlign: "center",
   },
-  quadrantGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-    gap: "18px",
-    alignItems: "start",
-  },
   panelTitle: {
     marginTop: 0,
-    marginBottom: "12px",
-    fontSize: "24px",
-    color: "#e2e8f0",
-  },
-  subPanelTitle: {
-    marginTop: "18px",
     marginBottom: "8px",
     fontSize: "18px",
     color: "#e2e8f0",
+  },
+  subPanelTitle: {
+    marginTop: "10px",
+    marginBottom: "6px",
+    fontSize: "14px",
+    color: "#e2e8f0",
+  },
+  smallTextRow: {
+    margin: "4px 0",
+    fontSize: "13px",
+    lineHeight: 1.35,
   },
   textRow: {
     margin: "8px 0",
@@ -349,19 +350,19 @@ const styles: Record<string, React.CSSProperties> = {
   testPointGrid: {
     display: "grid",
     gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-    gap: "14px",
-    marginTop: "8px",
+    gap: "8px",
+    marginTop: "4px",
   },
   smallLabel: {
     display: "block",
-    marginBottom: "6px",
-    fontSize: "16px",
+    marginBottom: "4px",
+    fontSize: "12px",
     color: "#cbd5e1",
   },
   smallInput: {
     width: "100%",
-    padding: "10px 12px",
-    fontSize: "16px",
+    padding: "6px 8px",
+    fontSize: "13px",
     borderRadius: "8px",
     border: "1px solid #475569",
     background: "#0f172a",

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { WheelEvent } from "react";
+import type { MouseEvent, WheelEvent } from "react";
 import type { Alignment, ArcSegment, LineSegment, Point } from "../types/alignment";
 import type { AlignmentEvaluation } from "../lib/evaluateAlignment";
 
@@ -115,6 +115,9 @@ export function PlanView({ alignment, evaluation }: Props) {
   const padding = 30;
   const [zoom, setZoom] = useState(1);
   const [zoomActive, setZoomActive] = useState(false);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [panning, setPanning] = useState(false);
+  const [lastPanPoint, setLastPanPoint] = useState<{ x: number; y: number } | null>(null);
 
   const bounds = getBounds(alignment);
 
@@ -155,6 +158,29 @@ export function PlanView({ alignment, evaluation }: Props) {
     });
   };
 
+  const handleMouseDown = (event: MouseEvent<SVGSVGElement>) => {
+    if (event.button !== 1) return;
+    event.preventDefault();
+    setPanning(true);
+    setLastPanPoint({ x: event.clientX, y: event.clientY });
+  };
+
+  const handleMouseMove = (event: MouseEvent<SVGSVGElement>) => {
+    if (!panning || !lastPanPoint) return;
+    event.preventDefault();
+
+    const dx = event.clientX - lastPanPoint.x;
+    const dy = event.clientY - lastPanPoint.y;
+
+    setPan((current) => ({ x: current.x + dx, y: current.y + dy }));
+    setLastPanPoint({ x: event.clientX, y: event.clientY });
+  };
+
+  const stopPanning = () => {
+    setPanning(false);
+    setLastPanPoint(null);
+  };
+
   return (
     <div
       tabIndex={0}
@@ -171,8 +197,12 @@ export function PlanView({ alignment, evaluation }: Props) {
         viewBox={`0 0 ${width} ${height}`}
         style={{ background: "#0f172a", borderRadius: 8 }}
         onWheel={handleWheelZoom}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={stopPanning}
+        onMouseLeave={stopPanning}
       >
-        <g transform={`translate(${width / 2} ${height / 2}) scale(${zoom}) translate(${-width / 2} ${-height / 2})`}>
+        <g transform={`translate(${pan.x} ${pan.y}) translate(${width / 2} ${height / 2}) scale(${zoom}) translate(${-width / 2} ${-height / 2})`}>
           {alignment.segments.map((seg) =>
             seg.type === "line"
               ? lineToSvg(seg, bounds, width, height, padding)
@@ -216,7 +246,7 @@ export function PlanView({ alignment, evaluation }: Props) {
       </svg>
 
       <div style={{ marginTop: 10, fontSize: 14, color: "#cbd5e1", textAlign: "center" }}>
-        Blue = alignment, Orange = section cut direction, Green dashed = tangent · Click card then wheel to zoom
+        Blue = alignment, Orange = section cut direction, Green dashed = tangent · Click card then wheel to zoom · Middle-click drag to pan
       </div>
     </div>
   );

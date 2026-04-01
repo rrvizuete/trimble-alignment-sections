@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { WheelEvent } from "react";
+import type { MouseEvent, WheelEvent } from "react";
 import type { SectionCoordinates } from "../lib/sectionTransform";
 
 type SectionPoint = {
@@ -94,6 +94,9 @@ export function SectionView({ stationLabel, centerlineElevation, samplePoint }: 
   const padding = 44;
   const [zoom, setZoom] = useState(1);
   const [zoomActive, setZoomActive] = useState(false);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [panning, setPanning] = useState(false);
+  const [lastPanPoint, setLastPanPoint] = useState<{ x: number; y: number } | null>(null);
 
   const points: SectionPoint[] = [];
 
@@ -152,6 +155,29 @@ export function SectionView({ stationLabel, centerlineElevation, samplePoint }: 
     });
   };
 
+  const handleMouseDown = (event: MouseEvent<SVGSVGElement>) => {
+    if (event.button !== 1) return;
+    event.preventDefault();
+    setPanning(true);
+    setLastPanPoint({ x: event.clientX, y: event.clientY });
+  };
+
+  const handleMouseMove = (event: MouseEvent<SVGSVGElement>) => {
+    if (!panning || !lastPanPoint) return;
+    event.preventDefault();
+
+    const dx = event.clientX - lastPanPoint.x;
+    const dy = event.clientY - lastPanPoint.y;
+
+    setPan((current) => ({ x: current.x + dx, y: current.y + dy }));
+    setLastPanPoint({ x: event.clientX, y: event.clientY });
+  };
+
+  const stopPanning = () => {
+    setPanning(false);
+    setLastPanPoint(null);
+  };
+
   return (
     <div
       tabIndex={0}
@@ -168,93 +194,99 @@ export function SectionView({ stationLabel, centerlineElevation, samplePoint }: 
         viewBox={`0 0 ${width} ${height}`}
         style={{ background: "#0f172a", borderRadius: 8 }}
         onWheel={handleWheelZoom}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={stopPanning}
+        onMouseLeave={stopPanning}
       >
-        {offsetTicks.map((offset, index) => {
-          const x = project(offset, bounds.minElevation, bounds, width, height, padding).x;
-          const isCenterline = Math.abs(offset) < 0.001;
-          const showLabel = isCenterline || index % offsetLabelEvery === 0;
-          return (
-            <g key={`offset-grid-${offset}`}>
-              <line
-                x1={x}
-                y1={padding}
-                x2={x}
-                y2={height - padding}
-                stroke={isCenterline ? "#334155" : "#1e293b"}
-                strokeWidth={isCenterline ? 1.4 : 1}
-              />
-              {showLabel && (
-                <text x={x} y={height - padding + 16} textAnchor="middle" fill="#94a3b8" fontSize={11}>
-                  {formatTick(offset, offsetStep)}
-                </text>
-              )}
-            </g>
-          );
-        })}
+        <g transform={`translate(${pan.x} ${pan.y}) translate(${width / 2} ${height / 2}) scale(${zoom}) translate(${-width / 2} ${-height / 2})`}>
+          {offsetTicks.map((offset, index) => {
+            const x = project(offset, bounds.minElevation, bounds, width, height, padding).x;
+            const isCenterline = Math.abs(offset) < 0.001;
+            const showLabel = isCenterline || index % offsetLabelEvery === 0;
+            return (
+              <g key={`offset-grid-${offset}`}>
+                <line
+                  x1={x}
+                  y1={padding}
+                  x2={x}
+                  y2={height - padding}
+                  stroke={isCenterline ? "#334155" : "#1e293b"}
+                  strokeWidth={isCenterline ? 1.4 : 1}
+                />
+                {showLabel && (
+                  <text x={x} y={height - padding + 16} textAnchor="middle" fill="#94a3b8" fontSize={11}>
+                    {formatTick(offset, offsetStep)}
+                  </text>
+                )}
+              </g>
+            );
+          })}
 
-        {elevationTicks.map((elevation, index) => {
-          const y = project(bounds.minOffset, elevation, bounds, width, height, padding).y;
-          const nearClElevation = Math.abs(elevation - clElevation) < elevationStep / 1000;
-          const showLabel = nearClElevation || index % elevationLabelEvery === 0;
-          return (
-            <g key={`elevation-grid-${elevation}`}>
-              <line x1={padding} y1={y} x2={width - padding} y2={y} stroke="#1e293b" strokeWidth={1} />
-              {showLabel && (
-                <text x={padding - 8} y={y + 4} textAnchor="end" fill="#94a3b8" fontSize={11}>
-                  {formatTick(elevation, elevationStep)}
-                </text>
-              )}
-            </g>
-          );
-        })}
+          {elevationTicks.map((elevation, index) => {
+            const y = project(bounds.minOffset, elevation, bounds, width, height, padding).y;
+            const nearClElevation = Math.abs(elevation - clElevation) < elevationStep / 1000;
+            const showLabel = nearClElevation || index % elevationLabelEvery === 0;
+            return (
+              <g key={`elevation-grid-${elevation}`}>
+                <line x1={padding} y1={y} x2={width - padding} y2={y} stroke="#1e293b" strokeWidth={1} />
+                {showLabel && (
+                  <text x={padding - 8} y={y + 4} textAnchor="end" fill="#94a3b8" fontSize={11}>
+                    {formatTick(elevation, elevationStep)}
+                  </text>
+                )}
+              </g>
+            );
+          })}
 
-        <line
-          x1={padding}
-          y1={height - padding}
-          x2={width - padding}
-          y2={height - padding}
-          stroke="#475569"
-          strokeWidth={1.5}
-        />
+          <line
+            x1={padding}
+            y1={height - padding}
+            x2={width - padding}
+            y2={height - padding}
+            stroke="#475569"
+            strokeWidth={1.5}
+          />
 
-        <line
-          x1={clBottom.x}
-          y1={clBottom.y}
-          x2={clTop.x}
-          y2={clTop.y}
-          stroke="#f59e0b"
-          strokeWidth={2.5}
-          strokeDasharray="8 6"
-        />
+          <line
+            x1={clBottom.x}
+            y1={clBottom.y}
+            x2={clTop.x}
+            y2={clTop.y}
+            stroke="#f59e0b"
+            strokeWidth={2.5}
+            strokeDasharray="8 6"
+          />
 
-        {centerlineElevation !== undefined && (
-          <g>
-            <circle cx={clPoint.x} cy={clPoint.y} r={5} fill="#ef4444" stroke="#fff" />
-            <text x={clPoint.x + 10} y={clPoint.y - 8} fill="#fecaca" fontSize={14}>
-              CL Elev. {centerlineElevation.toFixed(3)}
-            </text>
-          </g>
-        )}
-
-        {points.map((p) => {
-          const pt = project(p.offset, p.elevation, bounds, width, height, padding);
-
-          return (
-            <g key={`${p.label}-${p.offset}-${p.elevation}`}>
-              <circle cx={pt.x} cy={pt.y} r={5} fill={p.color} stroke="#fff" strokeWidth={1.5} />
-              <text x={pt.x + 10} y={pt.y - 8} fill="#e2e8f0" fontSize={14}>
-                {p.label}: Off {p.offset.toFixed(3)}, Elev {p.elevation.toFixed(3)}
+          {centerlineElevation !== undefined && (
+            <g>
+              <circle cx={clPoint.x} cy={clPoint.y} r={5} fill="#ef4444" stroke="#fff" />
+              <text x={clPoint.x + 10} y={clPoint.y - 8} fill="#fecaca" fontSize={14}>
+                CL Elev. {centerlineElevation.toFixed(3)}
               </text>
             </g>
-          );
-        })}
+          )}
 
-        <text x={padding} y={height - 14} fill="#94a3b8" fontSize={14}>
-          Left (−) / Right (+) Offset from CL
-        </text>
-        <text x={padding} y={padding - 10} fill="#94a3b8" fontSize={12}>
-          Grid: Offsets and Elevations (click card, then wheel to zoom)
-        </text>
+          {points.map((p) => {
+            const pt = project(p.offset, p.elevation, bounds, width, height, padding);
+
+            return (
+              <g key={`${p.label}-${p.offset}-${p.elevation}`}>
+                <circle cx={pt.x} cy={pt.y} r={5} fill={p.color} stroke="#fff" strokeWidth={1.5} />
+                <text x={pt.x + 10} y={pt.y - 8} fill="#e2e8f0" fontSize={14}>
+                  {p.label}: Off {p.offset.toFixed(3)}, Elev {p.elevation.toFixed(3)}
+                </text>
+              </g>
+            );
+          })}
+
+          <text x={padding} y={height - 14} fill="#94a3b8" fontSize={14}>
+            Left (−) / Right (+) Offset from CL
+          </text>
+          <text x={padding} y={padding - 10} fill="#94a3b8" fontSize={12}>
+            Grid: Offsets/Elevations · Click card then wheel zoom · Middle-click drag pan
+          </text>
+        </g>
       </svg>
     </div>
   );

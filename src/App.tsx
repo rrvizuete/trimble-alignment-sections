@@ -127,126 +127,133 @@ export default function App() {
           />
         </div>
 
-        {selectedAlignment && (
-          <div style={styles.panel}>
-            <h2 style={styles.panelTitle}>Alignment Info</h2>
-            <p style={styles.textRow}>
-              <strong>Name:</strong> {selectedAlignment.name}
-            </p>
-            <p style={styles.textRow}>
-              <strong>Start station:</strong> {formatStation(selectedAlignment.staStart)}
-            </p>
-            <p style={styles.textRow}>
-              <strong>Segments:</strong> {selectedAlignment.segments.length}
-            </p>
-            <p style={styles.textRow}>
-              <strong>Profile:</strong>{" "}
-              {selectedAlignment.profile
-                ? `${selectedAlignment.profile.name} (${selectedAlignment.profile.points.length} control points)`
-                : "No profile found"}
-            </p>
-          </div>
-        )}
-
-        {evaluation && (
-          <div style={styles.panel}>
-            <h2 style={styles.panelTitle}>Station Evaluation</h2>
-            <p style={styles.textRow}>
-              <strong>Station:</strong> {stationText}
-            </p>
-            <p style={styles.textRow}>
-              <strong>Segment type:</strong> {evaluation.segmentType}
-            </p>
-            <p style={styles.textRow}>
-              <strong>X:</strong> {evaluation.x.toFixed(3)}
-            </p>
-            <p style={styles.textRow}>
-              <strong>Y:</strong> {evaluation.y.toFixed(3)}
-            </p>
-            <p style={styles.textRow}>
-              <strong>Z:</strong>{" "}
-              {evaluation.z !== undefined ? evaluation.z.toFixed(3) : "N/A"}
-            </p>
-            <p style={styles.textRow}>
-              <strong>Tangent X:</strong> {evaluation.tangent.x.toFixed(6)}
-            </p>
-            <p style={styles.textRow}>
-              <strong>Tangent Y:</strong> {evaluation.tangent.y.toFixed(6)}
-            </p>
-            <p style={styles.textRow}>
-              <strong>Section normal X:</strong> {evaluation.normal.x.toFixed(6)}
-            </p>
-            <p style={styles.textRow}>
-              <strong>Section normal Y:</strong> {evaluation.normal.y.toFixed(6)}
-            </p>
-          </div>
-        )}
-
-                {selectedAlignment && <PlanView alignment={selectedAlignment} evaluation={evaluation} />}
-
-        <SectionView
-          stationLabel={stationText || "N/A"}
-          centerlineElevation={evaluation?.z}
-          samplePoint={sectionCoords}
-        />
-
-        <div style={styles.panel}>
-          <h2 style={styles.panelTitle}>Test World Point → Section Coordinates</h2>
-
-          <div style={styles.testPointGrid}>
-            <div>
-              <label htmlFor="test-point-x" style={styles.smallLabel}>
-                Point X
-              </label>
-              <input
-                id="test-point-x"
-                type="text"
-                value={testPointX}
-                onChange={(e) => setTestPointX(e.target.value)}
-                style={styles.smallInput}
-              />
-            </div>
-
-            <div>
-              <label htmlFor="test-point-y" style={styles.smallLabel}>
-                Point Y
-              </label>
-              <input
-                id="test-point-y"
-                type="text"
-                value={testPointY}
-                onChange={(e) => setTestPointY(e.target.value)}
-                style={styles.smallInput}
-              />
-            </div>
-
-            <div>
-              <label htmlFor="test-point-z" style={styles.smallLabel}>
-                Point Z
-              </label>
-              <input
-                id="test-point-z"
-                type="text"
-                value={testPointZ}
-                onChange={(e) => setTestPointZ(e.target.value)}
-                style={styles.smallInput}
-              />
-            </div>
-          </div>
-
-          {sectionCoords && (
-            <div style={{ marginTop: 18 }}>
+        <div style={styles.quadrantGrid}>
+          {selectedAlignment && (
+            <div style={styles.panel}>
+              <h2 style={styles.panelTitle}>Alignment Info</h2>
               <p style={styles.textRow}>
-                <strong>Offset from CL:</strong> {sectionCoords.offset.toFixed(3)}
+                <strong>Name:</strong> {selectedAlignment.name}
               </p>
               <p style={styles.textRow}>
-                <strong>Elevation:</strong> {sectionCoords.elevation.toFixed(3)}
+                <strong>Start station:</strong> {formatStation(selectedAlignment.staStart)}
               </p>
               <p style={styles.textRow}>
-                <strong>Along-tangent distance:</strong> {sectionCoords.along.toFixed(3)}
+                <strong>Segments:</strong> {selectedAlignment.segments.length}
+              </p>
+              <p style={styles.textRow}>
+                <strong>Profile:</strong>{" "}
+                {selectedAlignment.profile
+                  ? `${selectedAlignment.profile.name} (${selectedAlignment.profile.points.length} control points)`
+                  : "No profile found"}
               </p>
             </div>
           )}
+
+          <div style={styles.panel}>
+            <h2 style={styles.panelTitle}>Station Evaluation</h2>
+            {evaluation ? (
+              <>
+                <p style={styles.textRow}>
+                  <strong>Station:</strong> {stationText}
+                </p>
+                <p style={styles.textRow}>
+                  <strong>Segment type:</strong> {evaluation.segmentType}
+                </p>
+                <p style={styles.textRow}>
+                  <strong>X:</strong> {evaluation.x.toFixed(3)}
+                </p>
+                <p style={styles.textRow}>
+                  <strong>Y:</strong> {evaluation.y.toFixed(3)}
+                </p>
+                <p style={styles.textRow}>
+                  <strong>Z:</strong>{" "}
+                  {evaluation.z !== undefined ? evaluation.z.toFixed(3) : "N/A"}
+                </p>
+                <p style={styles.textRow}>
+                  <strong>Tangent X:</strong> {evaluation.tangent.x.toFixed(6)}
+                </p>
+                <p style={styles.textRow}>
+                  <strong>Tangent Y:</strong> {evaluation.tangent.y.toFixed(6)}
+                </p>
+                <p style={styles.textRow}>
+                  <strong>Section normal X:</strong> {evaluation.normal.x.toFixed(6)}
+                </p>
+                <p style={styles.textRow}>
+                  <strong>Section normal Y:</strong> {evaluation.normal.y.toFixed(6)}
+                </p>
+              </>
+            ) : (
+              <p style={styles.textRow}>Enter a valid station to evaluate the alignment.</p>
+            )}
+
+            <h3 style={styles.subPanelTitle}>Test World Point → Section Coordinates</h3>
+            <div style={styles.testPointGrid}>
+              <div>
+                <label htmlFor="test-point-x" style={styles.smallLabel}>
+                  Point X
+                </label>
+                <input
+                  id="test-point-x"
+                  type="text"
+                  value={testPointX}
+                  onChange={(e) => setTestPointX(e.target.value)}
+                  style={styles.smallInput}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="test-point-y" style={styles.smallLabel}>
+                  Point Y
+                </label>
+                <input
+                  id="test-point-y"
+                  type="text"
+                  value={testPointY}
+                  onChange={(e) => setTestPointY(e.target.value)}
+                  style={styles.smallInput}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="test-point-z" style={styles.smallLabel}>
+                  Point Z
+                </label>
+                <input
+                  id="test-point-z"
+                  type="text"
+                  value={testPointZ}
+                  onChange={(e) => setTestPointZ(e.target.value)}
+                  style={styles.smallInput}
+                />
+              </div>
+            </div>
+
+            {sectionCoords && (
+              <div style={{ marginTop: 14 }}>
+                <p style={styles.textRow}>
+                  <strong>Offset from CL:</strong> {sectionCoords.offset.toFixed(3)}
+                </p>
+                <p style={styles.textRow}>
+                  <strong>Elevation:</strong> {sectionCoords.elevation.toFixed(3)}
+                </p>
+                <p style={styles.textRow}>
+                  <strong>Along-tangent distance:</strong> {sectionCoords.along.toFixed(3)}
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div style={styles.panel}>
+            {selectedAlignment && <PlanView alignment={selectedAlignment} evaluation={evaluation} />}
+          </div>
+
+          <div style={styles.panel}>
+            <SectionView
+              stationLabel={stationText || "N/A"}
+              centerlineElevation={evaluation?.z}
+              samplePoint={sectionCoords}
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -258,26 +265,26 @@ const styles: Record<string, React.CSSProperties> = {
     minHeight: "100vh",
     background: "#0f172a",
     color: "#e5e7eb",
-    padding: "32px",
+    padding: "20px",
     fontFamily: "Arial, sans-serif",
   },
   card: {
-    maxWidth: "980px",
+    maxWidth: "1400px",
     margin: "0 auto",
     background: "#111827",
     borderRadius: "16px",
-    padding: "32px",
+    padding: "24px",
     boxShadow: "0 10px 30px rgba(0,0,0,0.3)",
   },
   title: {
     marginTop: 0,
-    marginBottom: "24px",
-    fontSize: "42px",
+    marginBottom: "16px",
+    fontSize: "36px",
     lineHeight: 1.1,
     textAlign: "center",
   },
   field: {
-    marginBottom: "20px",
+    marginBottom: "14px",
   },
   label: {
     display: "block",
@@ -311,16 +318,28 @@ const styles: Record<string, React.CSSProperties> = {
     color: "#e5e7eb",
   },
   panel: {
-    marginTop: "24px",
-    padding: "20px",
+    marginTop: 0,
+    padding: "16px",
     background: "#1f2937",
     borderRadius: "12px",
     textAlign: "center",
+  },
+  quadrantGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+    gap: "18px",
+    alignItems: "start",
   },
   panelTitle: {
     marginTop: 0,
     marginBottom: "12px",
     fontSize: "24px",
+    color: "#e2e8f0",
+  },
+  subPanelTitle: {
+    marginTop: "18px",
+    marginBottom: "8px",
+    fontSize: "18px",
     color: "#e2e8f0",
   },
   textRow: {

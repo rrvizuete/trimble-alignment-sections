@@ -91,6 +91,7 @@ function lineToSvg(seg: LineSegment, bounds: Bounds, width: number, height: numb
       y2={b.y}
       stroke="#38bdf8"
       strokeWidth={2}
+      vectorEffect="non-scaling-stroke"
     />
   );
 }
@@ -106,7 +107,7 @@ function arcToSvg(seg: ArcSegment, bounds: Bounds, width: number, height: number
 
   const d = `M ${a.x} ${a.y} A ${radiusPx} ${radiusPx} 0 ${largeArcFlag} ${sweepFlag} ${b.x} ${b.y}`;
 
-  return <path key={`arc-${seg.start.x}-${seg.start.y}-${seg.end.x}-${seg.end.y}`} d={d} fill="none" stroke="#38bdf8" strokeWidth={2} />;
+  return <path key={`arc-${seg.start.x}-${seg.start.y}-${seg.end.x}-${seg.end.y}`} d={d} fill="none" stroke="#38bdf8" strokeWidth={2} vectorEffect="non-scaling-stroke" />;
 }
 
 export function PlanView({ alignment, evaluation }: Props) {
@@ -186,7 +187,7 @@ export function PlanView({ alignment, evaluation }: Props) {
       tabIndex={0}
       onClick={() => setZoomActive(true)}
       onBlur={() => setZoomActive(false)}
-      style={{ outline: "none" }}
+      style={{ outline: "none", display: "flex", flexDirection: "column", minHeight: 0, flex: 1 }}
     >
       <h2 style={{ marginTop: 0, marginBottom: 12, fontSize: 24, textAlign: "center", color: "#e2e8f0" }}>
         Plan View
@@ -194,8 +195,9 @@ export function PlanView({ alignment, evaluation }: Props) {
 
       <svg
         width="100%"
+        height="100%"
         viewBox={`0 0 ${width} ${height}`}
-        style={{ background: "#0f172a", borderRadius: 8 }}
+        style={{ background: "#0f172a", borderRadius: 8, flex: 1, minHeight: 0 }}
         onWheel={handleWheelZoom}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
@@ -217,6 +219,7 @@ export function PlanView({ alignment, evaluation }: Props) {
               y2={sectionLine.y2}
               stroke="#f59e0b"
               strokeWidth={3}
+              vectorEffect="non-scaling-stroke"
             />
           )}
 
@@ -229,6 +232,7 @@ export function PlanView({ alignment, evaluation }: Props) {
               stroke="#22c55e"
               strokeWidth={2}
               strokeDasharray="8 6"
+              vectorEffect="non-scaling-stroke"
             />
           )}
 
@@ -240,6 +244,7 @@ export function PlanView({ alignment, evaluation }: Props) {
               fill="#ef4444"
               stroke="#ffffff"
               strokeWidth={1.5}
+              vectorEffect="non-scaling-stroke"
             />
           )}
         </g>

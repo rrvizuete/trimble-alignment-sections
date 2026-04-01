@@ -183,7 +183,7 @@ export function SectionView({ stationLabel, centerlineElevation, samplePoint }: 
       tabIndex={0}
       onClick={() => setZoomActive(true)}
       onBlur={() => setZoomActive(false)}
-      style={{ outline: "none" }}
+      style={{ outline: "none", display: "flex", flexDirection: "column", minHeight: 0, flex: 1 }}
     >
       <h2 style={{ margin: 0, marginBottom: 12, fontSize: 24, textAlign: "center", color: "#e2e8f0", flex: 1 }}>
         Section View ({stationLabel})
@@ -191,19 +191,24 @@ export function SectionView({ stationLabel, centerlineElevation, samplePoint }: 
 
       <svg
         width="100%"
+        height="100%"
         viewBox={`0 0 ${width} ${height}`}
-        style={{ background: "#0f172a", borderRadius: 8 }}
+        style={{ background: "#0f172a", borderRadius: 8, flex: 1, minHeight: 0 }}
         onWheel={handleWheelZoom}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={stopPanning}
         onMouseLeave={stopPanning}
       >
-        <g transform={`translate(${pan.x} ${pan.y}) translate(${width / 2} ${height / 2}) scale(${zoom}) translate(${-width / 2} ${-height / 2})`}>
-          {offsetTicks.map((offset, index) => {
+        <defs>
+          <clipPath id="section-plot-clip">
+            <rect x={padding} y={padding} width={width - 2 * padding} height={height - 2 * padding} />
+          </clipPath>
+        </defs>
+
+        <g clipPath="url(#section-plot-clip)" transform={`translate(${pan.x} ${pan.y}) translate(${width / 2} ${height / 2}) scale(${zoom}) translate(${-width / 2} ${-height / 2})`}>
+          {offsetTicks.map((offset) => {
             const x = project(offset, bounds.minElevation, bounds, width, height, padding).x;
-            const isCenterline = Math.abs(offset) < 0.001;
-            const showLabel = isCenterline || index % offsetLabelEvery === 0;
             return (
               <g key={`offset-grid-${offset}`}>
                 <line
@@ -211,30 +216,19 @@ export function SectionView({ stationLabel, centerlineElevation, samplePoint }: 
                   y1={padding}
                   x2={x}
                   y2={height - padding}
-                  stroke={isCenterline ? "#334155" : "#1e293b"}
-                  strokeWidth={isCenterline ? 1.4 : 1}
+                  stroke={Math.abs(offset) < 0.001 ? "#334155" : "#1e293b"}
+                  strokeWidth={Math.abs(offset) < 0.001 ? 1.4 : 1}
+                  vectorEffect="non-scaling-stroke"
                 />
-                {showLabel && (
-                  <text x={x} y={height - padding + 16} textAnchor="middle" fill="#94a3b8" fontSize={11}>
-                    {formatTick(offset, offsetStep)}
-                  </text>
-                )}
               </g>
             );
           })}
 
-          {elevationTicks.map((elevation, index) => {
+          {elevationTicks.map((elevation) => {
             const y = project(bounds.minOffset, elevation, bounds, width, height, padding).y;
-            const nearClElevation = Math.abs(elevation - clElevation) < elevationStep / 1000;
-            const showLabel = nearClElevation || index % elevationLabelEvery === 0;
             return (
               <g key={`elevation-grid-${elevation}`}>
-                <line x1={padding} y1={y} x2={width - padding} y2={y} stroke="#1e293b" strokeWidth={1} />
-                {showLabel && (
-                  <text x={padding - 8} y={y + 4} textAnchor="end" fill="#94a3b8" fontSize={11}>
-                    {formatTick(elevation, elevationStep)}
-                  </text>
-                )}
+                <line x1={padding} y1={y} x2={width - padding} y2={y} stroke="#1e293b" strokeWidth={1} vectorEffect="non-scaling-stroke" />
               </g>
             );
           })}
@@ -246,6 +240,7 @@ export function SectionView({ stationLabel, centerlineElevation, samplePoint }: 
             y2={height - padding}
             stroke="#475569"
             strokeWidth={1.5}
+            vectorEffect="non-scaling-stroke"
           />
 
           <line
@@ -256,11 +251,12 @@ export function SectionView({ stationLabel, centerlineElevation, samplePoint }: 
             stroke="#f59e0b"
             strokeWidth={2.5}
             strokeDasharray="8 6"
+            vectorEffect="non-scaling-stroke"
           />
 
           {centerlineElevation !== undefined && (
             <g>
-              <circle cx={clPoint.x} cy={clPoint.y} r={5} fill="#ef4444" stroke="#fff" />
+              <circle cx={clPoint.x} cy={clPoint.y} r={5} fill="#ef4444" stroke="#fff" vectorEffect="non-scaling-stroke" />
               <text x={clPoint.x + 10} y={clPoint.y - 8} fill="#fecaca" fontSize={14}>
                 CL Elev. {centerlineElevation.toFixed(3)}
               </text>
@@ -272,7 +268,7 @@ export function SectionView({ stationLabel, centerlineElevation, samplePoint }: 
 
             return (
               <g key={`${p.label}-${p.offset}-${p.elevation}`}>
-                <circle cx={pt.x} cy={pt.y} r={5} fill={p.color} stroke="#fff" strokeWidth={1.5} />
+                <circle cx={pt.x} cy={pt.y} r={5} fill={p.color} stroke="#fff" strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
                 <text x={pt.x + 10} y={pt.y - 8} fill="#e2e8f0" fontSize={14}>
                   {p.label}: Off {p.offset.toFixed(3)}, Elev {p.elevation.toFixed(3)}
                 </text>
@@ -280,13 +276,36 @@ export function SectionView({ stationLabel, centerlineElevation, samplePoint }: 
             );
           })}
 
-          <text x={padding} y={height - 14} fill="#94a3b8" fontSize={14}>
-            Left (−) / Right (+) Offset from CL
-          </text>
-          <text x={padding} y={padding - 10} fill="#94a3b8" fontSize={12}>
-            Grid: Offsets/Elevations · Click card then wheel zoom · Middle-click drag pan
-          </text>
         </g>
+
+        {offsetTicks.map((offset, index) => {
+          const x = project(offset, bounds.minElevation, bounds, width, height, padding).x;
+          const isCenterline = Math.abs(offset) < 0.001;
+          const showLabel = isCenterline || index % offsetLabelEvery === 0;
+          return showLabel ? (
+            <text key={`offset-label-${offset}`} x={x} y={height - padding + 16} textAnchor="middle" fill="#94a3b8" fontSize={11}>
+              {formatTick(offset, offsetStep)}
+            </text>
+          ) : null;
+        })}
+
+        {elevationTicks.map((elevation, index) => {
+          const y = project(bounds.minOffset, elevation, bounds, width, height, padding).y;
+          const nearClElevation = Math.abs(elevation - clElevation) < elevationStep / 1000;
+          const showLabel = nearClElevation || index % elevationLabelEvery === 0;
+          return showLabel ? (
+            <text key={`elevation-label-${elevation}`} x={padding - 8} y={y + 4} textAnchor="end" fill="#94a3b8" fontSize={11}>
+              {formatTick(elevation, elevationStep)}
+            </text>
+          ) : null;
+        })}
+
+        <text x={padding} y={height - 14} fill="#94a3b8" fontSize={14}>
+          Left (−) / Right (+) Offset from CL
+        </text>
+        <text x={padding} y={padding - 10} fill="#94a3b8" fontSize={12}>
+          Grid: Offsets/Elevations · Click card then wheel zoom · Middle-click drag pan
+        </text>
       </svg>
     </div>
   );

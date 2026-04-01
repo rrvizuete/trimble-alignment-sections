@@ -219,17 +219,15 @@ export default function App() {
             </div>
           </div>
 
-          <div style={styles.visualStack}>
-            <div style={styles.visualPanel}>
-              {selectedAlignment && <PlanView alignment={selectedAlignment} evaluation={evaluation} />}
-            </div>
-            <div style={styles.visualPanel}>
-              <SectionView
-                stationLabel={stationText || "N/A"}
-                centerlineElevation={evaluation?.z}
-                samplePoint={sectionCoords}
-              />
-            </div>
+          <div style={{ ...styles.visualPanel, ...styles.planPanel }}>
+            {selectedAlignment && <PlanView alignment={selectedAlignment} evaluation={evaluation} />}
+          </div>
+          <div style={{ ...styles.visualPanel, ...styles.sectionPanel }}>
+            <SectionView
+              stationLabel={stationText || "N/A"}
+              centerlineElevation={evaluation?.z}
+              samplePoint={sectionCoords}
+            />
           </div>
         </div>
       </div>
@@ -267,6 +265,7 @@ const styles: Record<string, React.CSSProperties> = {
   workspace: {
     display: "grid",
     gridTemplateColumns: "320px minmax(0, 1fr)",
+    gridTemplateRows: "minmax(0, 1fr) minmax(0, 1fr)",
     gap: "12px",
     minHeight: 0,
     flex: 1,
@@ -277,12 +276,7 @@ const styles: Record<string, React.CSSProperties> = {
     gap: "10px",
     minHeight: 0,
     overflowY: "auto",
-  },
-  visualStack: {
-    display: "grid",
-    gridTemplateRows: "1fr 1fr",
-    gap: "12px",
-    minHeight: 0,
+    gridRow: "1 / span 2",
   },
   visualPanel: {
     padding: "12px",
@@ -290,6 +284,16 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: "12px",
     overflow: "hidden",
     minHeight: 0,
+    display: "flex",
+    flexDirection: "column",
+  },
+  planPanel: {
+    gridColumn: 2,
+    gridRow: 1,
+  },
+  sectionPanel: {
+    gridColumn: "1 / span 2",
+    gridRow: 2,
   },
   field: {
     marginBottom: "8px",

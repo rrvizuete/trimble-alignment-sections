@@ -1,3 +1,5 @@
+import { useState } from "react";
+import type { WheelEvent } from "react";
 import type { Alignment, ArcSegment, LineSegment, Point } from "../types/alignment";
 import type { AlignmentEvaluation } from "../lib/evaluateAlignment";
 
@@ -111,6 +113,8 @@ export function PlanView({ alignment, evaluation }: Props) {
   const width = 820;
   const height = 420;
   const padding = 30;
+  const [zoom, setZoom] = useState(1);
+  const [zoomActive, setZoomActive] = useState(false);
 
   const bounds = getBounds(alignment);
 
@@ -140,8 +144,24 @@ export function PlanView({ alignment, evaluation }: Props) {
         }
       : null;
 
+  const handleWheelZoom = (event: WheelEvent<SVGSVGElement>) => {
+    if (!zoomActive) return;
+
+    event.preventDefault();
+    const zoomFactor = event.deltaY < 0 ? 1.2 : 1 / 1.2;
+    setZoom((currentZoom) => {
+      const nextZoom = currentZoom * zoomFactor;
+      return Math.min(32, Math.max(0.5, Number(nextZoom.toFixed(4))));
+    });
+  };
+
   return (
-    <div>
+    <div
+      tabIndex={0}
+      onClick={() => setZoomActive(true)}
+      onBlur={() => setZoomActive(false)}
+      style={{ outline: "none" }}
+    >
       <h2 style={{ marginTop: 0, marginBottom: 12, fontSize: 24, textAlign: "center", color: "#e2e8f0" }}>
         Plan View
       </h2>
@@ -150,50 +170,53 @@ export function PlanView({ alignment, evaluation }: Props) {
         width="100%"
         viewBox={`0 0 ${width} ${height}`}
         style={{ background: "#0f172a", borderRadius: 8 }}
+        onWheel={handleWheelZoom}
       >
-        {alignment.segments.map((seg) =>
-          seg.type === "line"
-            ? lineToSvg(seg, bounds, width, height, padding)
-            : arcToSvg(seg, bounds, width, height, padding)
-        )}
+        <g transform={`translate(${width / 2} ${height / 2}) scale(${zoom}) translate(${-width / 2} ${-height / 2})`}>
+          {alignment.segments.map((seg) =>
+            seg.type === "line"
+              ? lineToSvg(seg, bounds, width, height, padding)
+              : arcToSvg(seg, bounds, width, height, padding)
+          )}
 
-        {sectionLine && (
-          <line
-            x1={sectionLine.x1}
-            y1={sectionLine.y1}
-            x2={sectionLine.x2}
-            y2={sectionLine.y2}
-            stroke="#f59e0b"
-            strokeWidth={3}
-          />
-        )}
+          {sectionLine && (
+            <line
+              x1={sectionLine.x1}
+              y1={sectionLine.y1}
+              x2={sectionLine.x2}
+              y2={sectionLine.y2}
+              stroke="#f59e0b"
+              strokeWidth={3}
+            />
+          )}
 
-        {tangentLine && (
-          <line
-            x1={tangentLine.x1}
-            y1={tangentLine.y1}
-            x2={tangentLine.x2}
-            y2={tangentLine.y2}
-            stroke="#22c55e"
-            strokeWidth={2}
-            strokeDasharray="8 6"
-          />
-        )}
+          {tangentLine && (
+            <line
+              x1={tangentLine.x1}
+              y1={tangentLine.y1}
+              x2={tangentLine.x2}
+              y2={tangentLine.y2}
+              stroke="#22c55e"
+              strokeWidth={2}
+              strokeDasharray="8 6"
+            />
+          )}
 
-        {evalPt && (
-          <circle
-            cx={evalPt.x}
-            cy={evalPt.y}
-            r={5}
-            fill="#ef4444"
-            stroke="#ffffff"
-            strokeWidth={1.5}
-          />
-        )}
+          {evalPt && (
+            <circle
+              cx={evalPt.x}
+              cy={evalPt.y}
+              r={5}
+              fill="#ef4444"
+              stroke="#ffffff"
+              strokeWidth={1.5}
+            />
+          )}
+        </g>
       </svg>
 
       <div style={{ marginTop: 10, fontSize: 14, color: "#cbd5e1", textAlign: "center" }}>
-        Blue = alignment, Orange = section cut direction, Green dashed = tangent
+        Blue = alignment, Orange = section cut direction, Green dashed = tangent · Click card then wheel to zoom
       </div>
     </div>
   );

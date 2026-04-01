@@ -93,6 +93,7 @@ export function SectionView({ stationLabel, centerlineElevation, samplePoint }: 
   const height = 360;
   const padding = 44;
   const [zoom, setZoom] = useState(1);
+  const [zoomActive, setZoomActive] = useState(false);
 
   const points: SectionPoint[] = [];
 
@@ -140,6 +141,8 @@ export function SectionView({ stationLabel, centerlineElevation, samplePoint }: 
   const elevationLabelEvery = Math.max(1, Math.ceil(28 / pxPerElevationStep));
 
   const handleWheelZoom = (event: WheelEvent<SVGSVGElement>) => {
+    if (!zoomActive) return;
+
     event.preventDefault();
 
     const zoomFactor = event.deltaY < 0 ? 1.2 : 1 / 1.2;
@@ -150,7 +153,12 @@ export function SectionView({ stationLabel, centerlineElevation, samplePoint }: 
   };
 
   return (
-    <div>
+    <div
+      tabIndex={0}
+      onClick={() => setZoomActive(true)}
+      onBlur={() => setZoomActive(false)}
+      style={{ outline: "none" }}
+    >
       <h2 style={{ margin: 0, marginBottom: 12, fontSize: 24, textAlign: "center", color: "#e2e8f0", flex: 1 }}>
         Section View ({stationLabel})
       </h2>
@@ -245,7 +253,7 @@ export function SectionView({ stationLabel, centerlineElevation, samplePoint }: 
           Left (−) / Right (+) Offset from CL
         </text>
         <text x={padding} y={padding - 10} fill="#94a3b8" fontSize={12}>
-          Grid: Offsets and Elevations (wheel to zoom)
+          Grid: Offsets and Elevations (click card, then wheel to zoom)
         </text>
       </svg>
     </div>

@@ -193,6 +193,7 @@ export function SectionView({ stationLabel, centerlineElevation, samplePoint }: 
         width="100%"
         height="100%"
         viewBox={`0 0 ${width} ${height}`}
+        preserveAspectRatio="none"
         style={{ background: "#0f172a", borderRadius: 8, flex: 1, minHeight: 0 }}
         onWheel={handleWheelZoom}
         onMouseDown={handleMouseDown}

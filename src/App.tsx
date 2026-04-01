@@ -276,7 +276,8 @@ const styles: Record<string, React.CSSProperties> = {
     gap: "10px",
     minHeight: 0,
     overflowY: "auto",
-    gridRow: "1 / span 2",
+    gridColumn: 1,
+    gridRow: 1,
   },
   visualPanel: {
     padding: "12px",

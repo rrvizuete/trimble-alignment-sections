@@ -1,3 +1,5 @@
+import { useState } from "react";
+import type { MouseEvent, WheelEvent } from "react";
 import type { Alignment, ArcSegment, LineSegment, Point } from "../types/alignment";
 import type { AlignmentEvaluation } from "../lib/evaluateAlignment";
 
@@ -89,6 +91,7 @@ function lineToSvg(seg: LineSegment, bounds: Bounds, width: number, height: numb
       y2={b.y}
       stroke="#38bdf8"
       strokeWidth={2}
+      vectorEffect="non-scaling-stroke"
     />
   );
 }
@@ -104,13 +107,18 @@ function arcToSvg(seg: ArcSegment, bounds: Bounds, width: number, height: number
 
   const d = `M ${a.x} ${a.y} A ${radiusPx} ${radiusPx} 0 ${largeArcFlag} ${sweepFlag} ${b.x} ${b.y}`;
 
-  return <path key={`arc-${seg.start.x}-${seg.start.y}-${seg.end.x}-${seg.end.y}`} d={d} fill="none" stroke="#38bdf8" strokeWidth={2} />;
+  return <path key={`arc-${seg.start.x}-${seg.start.y}-${seg.end.x}-${seg.end.y}`} d={d} fill="none" stroke="#38bdf8" strokeWidth={2} vectorEffect="non-scaling-stroke" />;
 }
 
 export function PlanView({ alignment, evaluation }: Props) {
   const width = 820;
   const height = 420;
   const padding = 30;
+  const [zoom, setZoom] = useState(1);
+  const [zoomActive, setZoomActive] = useState(false);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [panning, setPanning] = useState(false);
+  const [lastPanPoint, setLastPanPoint] = useState<{ x: number; y: number } | null>(null);
 
   const bounds = getBounds(alignment);
 
@@ -140,60 +148,111 @@ export function PlanView({ alignment, evaluation }: Props) {
         }
       : null;
 
+  const handleWheelZoom = (event: WheelEvent<SVGSVGElement>) => {
+    if (!zoomActive) return;
+
+    event.preventDefault();
+    const zoomFactor = event.deltaY < 0 ? 1.2 : 1 / 1.2;
+    setZoom((currentZoom) => {
+      const nextZoom = currentZoom * zoomFactor;
+      return Math.min(32, Math.max(0.5, Number(nextZoom.toFixed(4))));
+    });
+  };
+
+  const handleMouseDown = (event: MouseEvent<SVGSVGElement>) => {
+    if (event.button !== 1) return;
+    event.preventDefault();
+    setPanning(true);
+    setLastPanPoint({ x: event.clientX, y: event.clientY });
+  };
+
+  const handleMouseMove = (event: MouseEvent<SVGSVGElement>) => {
+    if (!panning || !lastPanPoint) return;
+    event.preventDefault();
+
+    const dx = event.clientX - lastPanPoint.x;
+    const dy = event.clientY - lastPanPoint.y;
+
+    setPan((current) => ({ x: current.x + dx, y: current.y + dy }));
+    setLastPanPoint({ x: event.clientX, y: event.clientY });
+  };
+
+  const stopPanning = () => {
+    setPanning(false);
+    setLastPanPoint(null);
+  };
+
   return (
-    <div style={{ marginTop: 24, padding: 20, background: "#1f2937", borderRadius: 12 }}>
+    <div
+      tabIndex={0}
+      onClick={() => setZoomActive(true)}
+      onBlur={() => setZoomActive(false)}
+      style={{ outline: "none", display: "flex", flexDirection: "column", minHeight: 0, flex: 1 }}
+    >
       <h2 style={{ marginTop: 0, marginBottom: 12, fontSize: 24, textAlign: "center", color: "#e2e8f0" }}>
         Plan View
       </h2>
 
       <svg
         width="100%"
+        height="100%"
         viewBox={`0 0 ${width} ${height}`}
-        style={{ background: "#0f172a", borderRadius: 8 }}
+        preserveAspectRatio="none"
+        style={{ background: "#0f172a", borderRadius: 8, flex: 1, minHeight: 0 }}
+        onWheel={handleWheelZoom}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={stopPanning}
+        onMouseLeave={stopPanning}
       >
-        {alignment.segments.map((seg) =>
-          seg.type === "line"
-            ? lineToSvg(seg, bounds, width, height, padding)
-            : arcToSvg(seg, bounds, width, height, padding)
-        )}
+        <g transform={`translate(${pan.x} ${pan.y}) translate(${width / 2} ${height / 2}) scale(${zoom}) translate(${-width / 2} ${-height / 2})`}>
+          {alignment.segments.map((seg) =>
+            seg.type === "line"
+              ? lineToSvg(seg, bounds, width, height, padding)
+              : arcToSvg(seg, bounds, width, height, padding)
+          )}
 
-        {sectionLine && (
-          <line
-            x1={sectionLine.x1}
-            y1={sectionLine.y1}
-            x2={sectionLine.x2}
-            y2={sectionLine.y2}
-            stroke="#f59e0b"
-            strokeWidth={3}
-          />
-        )}
+          {sectionLine && (
+            <line
+              x1={sectionLine.x1}
+              y1={sectionLine.y1}
+              x2={sectionLine.x2}
+              y2={sectionLine.y2}
+              stroke="#f59e0b"
+              strokeWidth={3}
+              vectorEffect="non-scaling-stroke"
+            />
+          )}
 
-        {tangentLine && (
-          <line
-            x1={tangentLine.x1}
-            y1={tangentLine.y1}
-            x2={tangentLine.x2}
-            y2={tangentLine.y2}
-            stroke="#22c55e"
-            strokeWidth={2}
-            strokeDasharray="8 6"
-          />
-        )}
+          {tangentLine && (
+            <line
+              x1={tangentLine.x1}
+              y1={tangentLine.y1}
+              x2={tangentLine.x2}
+              y2={tangentLine.y2}
+              stroke="#22c55e"
+              strokeWidth={2}
+              strokeDasharray="8 6"
+              vectorEffect="non-scaling-stroke"
+            />
+          )}
 
-        {evalPt && (
-          <circle
-            cx={evalPt.x}
-            cy={evalPt.y}
-            r={5}
-            fill="#ef4444"
-            stroke="#ffffff"
-            strokeWidth={1.5}
-          />
-        )}
+          {evalPt && (
+            <circle
+              cx={evalPt.x}
+              cy={evalPt.y}
+              r={5}
+              fill="#ef4444"
+              stroke="#ffffff"
+              strokeWidth={1.5}
+              vectorEffect="non-scaling-stroke"
+            />
+          )}
+        </g>
       </svg>
 
       <div style={{ marginTop: 10, fontSize: 14, color: "#cbd5e1", textAlign: "center" }}>
-        Blue = alignment, Orange = section cut direction, Green dashed = tangent
+        Blue = alignment, Orange = section cut direction, Green dashed = tangent · Click card then wheel to zoom · Middle-click drag to pan
       </div>
     </div>
   );
